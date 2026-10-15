@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "folders": [
+    {"id": "economy", "name": "经济"},
+    {"id": "technology", "name": "科技"},
+    {"id": "world", "name": "国际"},
+    {"id": "culture", "name": "文化"}
+  ]
+}

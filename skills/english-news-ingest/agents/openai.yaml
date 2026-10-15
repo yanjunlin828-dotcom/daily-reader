@@ -1,0 +1,12 @@
+interface:
+  display_name: "英语新闻录入、翻译与导读"
+  short_description: "将新闻录入本地阅读库，按段翻译、继续补译，并生成或导入中文导读"
+  default_prompt: "使用 $english-news-ingest 把这篇新闻录入阅读库，按段翻译并检查对应。"
+policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "english_news_library"
+      description: "本地英语新闻阅读库的文章、译文与中文导读工具"
+      transport: "stdio"

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf8f3">
+  <title>Daily Reader</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/newsreader-latin-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/source-han-sans-cn-vf.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/source-han-serif-cn-vf.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/fonts.css">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/import.css">
+  <link rel="stylesheet" href="/refinement.css">
+  <script src="/motion.js" defer></script>
+  <script src="/app.js" defer></script>
+  <script src="/import.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#article-title">跳到文章正文</a>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H4V4Zm9 3a3 3 0 0 1 3-3h5v15h-4a4 4 0 0 0-4 2"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V5h6l2 2h10v12H3V7Z"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M4 4v16M9 4v16M14 4v16M18 4l3 15"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 7H5v13h13v-5M14 4h6v6M10 14 20 4"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 10a8 8 0 1 0-1 7M20 4v6h-6"/></symbol>
+    <symbol id="i-document" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5V3Zm9 0v5h5M9 12h6M9 16h6"/></symbol>
+    <symbol id="i-switch" viewBox="0 0 24 24"><path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4"/></symbol>
+    <symbol id="i-paragraph-numbers" viewBox="0 0 24 24"><path d="m10 4-2 16M16 4l-2 16M5 9h15M4 15h15"/></symbol>
+  </svg>
+  <div class="app-shell">
+    <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+    <aside id="sidebar" class="sidebar" aria-label="文章库">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><svg class="icon"><use href="#i-book"/></svg></span><div class="brand-name"><strong lang="en">Daily Reader</strong></div><button id="close-library" class="icon-button close-library" aria-label="关闭文章库"><svg class="icon"><use href="#i-close"/></svg></button></div>
+      <div class="library-heading"><div class="file-list-heading"><h2>文章</h2><span id="library-count">—</span></div><button id="toggle-list-label" class="list-label-toggle" type="button" aria-controls="article-list" aria-pressed="false" aria-label="改用载入日期显示文章列表" title="点击切换为载入日期"><svg class="icon"><use href="#i-switch"/></svg><span id="list-label-mode">文章名</span></button></div>
+      <label class="sr-only" for="article-search">搜索文章</label>
+      <input id="article-search" class="library-search" type="search" placeholder="搜索标题或来源" autocomplete="off">
+      <nav id="article-list" class="article-list" aria-label="文章列表"><p class="sidebar-empty">正在读取文章…</p></nav>
+    </aside>
+    <main id="main" class="main">
+      <header class="topbar"><div class="topbar-location"><button id="open-library" class="icon-button open-library" aria-label="打开文章库" aria-controls="sidebar" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button><span id="breadcrumb">英语新闻阅读库</span></div><div class="topbar-actions"><span id="reading-meter" class="reading-meter">从第一段开始</span><button id="toggle-paragraph-numbers" class="icon-button" type="button" aria-label="显示段落编号" title="显示段落编号" aria-pressed="false" aria-controls="reader-content"><svg class="icon" aria-hidden="true"><use href="#i-paragraph-numbers"/></svg></button><button id="refresh-library" class="icon-button" aria-label="刷新文章库"><svg class="icon"><use href="#i-refresh"/></svg></button><button id="open-import" class="add-article"><svg class="icon"><use href="#i-plus"/></svg><span>录入文章</span></button></div></header>
+      <div class="reading-progress" aria-hidden="true"><span id="progress-fill"></span></div>
+      <section id="reader" class="reader" aria-label="文章阅读区" tabindex="-1">
+        <div id="reader-chrome" class="reader-chrome" hidden></div>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <div id="reader-content" class="reader-content"><div class="screen-state" role="status"><h1>正在打开文章库</h1><p>读取本地保存的原文和译文…</p></div></div>
+      </section>
+      <section id="import-panel" class="import-panel" aria-label="录入文章" hidden>
+        <div class="import-content">
+          <div class="import-heading"><div><h1 id="import-title" tabindex="-1">把一篇新闻留在这里</h1><p>先确认分段，再补上译文。最初粘贴的内容也会一起保存。</p></div><button id="cancel-import" class="text-button">返回阅读</button></div>
+          <form id="import-form">
+            <div class="metadata-fields">
+              <label class="field full">文章标题<input id="import-article-title" required maxlength="300" placeholder="输入英文标题" autocomplete="off"></label>
+              <label class="field">文件夹<select id="import-folder" required></select></label>
+              <label class="field">来源<input id="import-source" placeholder="例如：新闻网站名称（可留空）" autocomplete="off"></label>
+              <label class="field">原文链接<input id="import-url" type="url" placeholder="https://…（可留空）" autocomplete="off"></label>
+              <label class="field">发布日期<input id="import-date" type="date"></label>
+            </div>
+            <details id="input-details" class="input-details" open>
+              <summary>原文输入<span>粘贴英文、双语标记或文章 JSON</span></summary>
+              <div class="input-options"><label class="field format-field">内容格式<select id="import-format"><option value="plain">英文原文</option><option value="marked">带段落标记的双语内容</option><option value="json">完整文章 JSON</option></select></label><label id="split-option" class="split-option"><input id="split-every-line" type="checkbox">每个换行都是新段落</label></div>
+              <label class="field">粘贴内容<textarea id="import-raw" rows="10" required spellcheck="false" placeholder="把正文粘贴到这里。默认按空行分段，普通换行保留在同一段中。"></textarea></label>
+              <p id="format-help" class="field-help">程序不会按句号拆分，也不会把短句猜成小标题。预览中可以调整类型、合并或拆分。</p>
+              <details id="marked-example" class="format-example" hidden><summary>查看双语标记示例</summary><pre>:::paragraph p001
+:::en
+The library is a place to read.
+:::zh
+图书馆是阅读的地方。
+
+:::paragraph p002
+:::en
+Its doors are open to everyone.</pre><p>小标题用 :::heading，列表用 :::list。没有 :::zh 的内容块会保存为待翻译。</p></details>
+            </details>
+            <div class="prepare-actions"><button id="prepare-import" class="primary-button" type="submit"><span class="button-label">生成分段预览</span><svg class="icon"><use href="#i-arrow"/></svg></button><span id="prepare-status" aria-live="polite"></span></div>
+          </form>
+          <div id="import-error" class="import-message error" role="alert" hidden></div>
+          <button id="open-existing" class="text-button" hidden>打开已存在的文章</button>
+          <div id="import-warning" class="import-message" role="status" hidden></div>
+          <section id="preview-panel" class="preview-panel" aria-label="分段预览" hidden>
+            <div class="preview-heading"><h2>分段预览</h2><span id="preview-count"></span></div>
+            <p class="field-help">译文可留空。纯英文段落可按光标拆分或与下一段合并；含译文的段落保持对应关系。编号会在保存时固定。</p>
+            <div id="preview-blocks"></div>
+            <div class="save-bar"><div><strong id="save-summary"></strong><span>新增文章；已有文章和译文不会被覆盖</span></div><button id="save-import" class="primary-button"><span class="button-label">保存并阅读</span><svg class="icon"><use href="#i-check"/></svg></button></div>
+          </section>
+        </div>
+      </section>
+      <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    </main>
+  </div>
+</body>
+</html>

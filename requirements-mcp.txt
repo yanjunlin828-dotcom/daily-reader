@@ -1,0 +1,2 @@
+# Optional: required by mcp_server.py and library_cli.py, not by the HTTP reader.
+mcp==1.26.0

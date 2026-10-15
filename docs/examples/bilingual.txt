@@ -1,0 +1,23 @@
+:::heading h001
+:::en
+A place to read
+:::zh
+一个阅读的地方
+
+:::paragraph p001
+:::en
+This is an original example for the reading library, not a real news report.
+:::zh
+这是一篇为阅读库编写的原创示例，并非真实新闻报道。
+
+:::paragraph p002
+:::en
+You can leave a paragraph untranslated and complete it later.
+
+:::list l001
+:::en
+Keep the original text.
+Match translations by paragraph ID.
+:::zh
+保留英文原文。
+用段落编号匹配译文。

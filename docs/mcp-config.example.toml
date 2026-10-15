@@ -1,0 +1,15 @@
+# Replace the two /absolute/path/to/daily-reader paths with your clone's actual location.
+# Use the Python interpreter in which requirements-mcp.txt is installed.
+# Windows paths may use forward slashes, for example C:/Projects/daily-reader.
+[mcp_servers.english_news_library]
+command = "python"
+args = ["-B", "-u", "/absolute/path/to/daily-reader/mcp_server.py"]
+cwd = "/absolute/path/to/daily-reader"
+startup_timeout_sec = 20
+tool_timeout_sec = 30
+default_tools_approval_mode = "writes"
+enabled_tools = ["prepare_article", "save_article", "list_articles", "get_article", "add_translations", "prepare_reading_guide", "save_reading_guide", "get_reading_guide"]
+
+[mcp_servers.english_news_library.env]
+PYTHONUTF8 = "1"
+PYTHONDONTWRITEBYTECODE = "1"

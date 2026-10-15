@@ -1,0 +1,22 @@
+/* Original font assets; see fonts/manifest.json, newsreader-manifest.json and licenses. */
+@font-face {
+  font-family: "Reader Masthead";
+  src: url("/fonts/newsreader-latin-500.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Reader Sans";
+  src: url("/fonts/source-han-sans-cn-vf.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 250 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Reader Serif";
+  src: url("/fonts/source-han-serif-cn-vf.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 250 900;
+  font-display: swap;
+}

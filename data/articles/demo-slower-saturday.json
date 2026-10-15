@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "id": "demo-slower-saturday",
+  "title": "A quieter street, a different kind of economy",
+  "source": "Daily Reader · 原创虚构示例，非真实新闻",
+  "source_url": null,
+  "published_date": null,
+  "created_at": "2026-10-15T00:00:00Z",
+  "folder_id": "culture",
+  "content_version": 1,
+  "translation_status": "complete",
+  "is_demo": true,
+  "blocks": [
+    {
+      "id": "p001", "type": "paragraph",
+      "original": "Editor's note: This is an original fictional story created to demonstrate Daily Reader. The town, people and events are invented; this is not a report of real events.",
+      "translation": "编者注：这是一篇为展示 Daily Reader 而创作的原创虚构报道。文中的城镇、人物和事件均属虚构，并非对真实事件的报道。"
+    },
+    {
+      "id": "p002", "type": "paragraph",
+      "original": "On Saturday mornings, the busiest street in the small town of Willowford has begun to sound different. Engines no longer drown out conversations outside the bakery. Children draw on the road with chalk, while shoppers stop at stalls they once passed without noticing.",
+      "translation": "每逢周六上午，小镇 Willowford 最繁忙的街道开始有了不一样的声音。面包店外，交谈声不再被发动机的轰鸣淹没。孩子们用粉笔在路面上画画，购物的人则驻足于那些过去路过时从未留意的摊位。"
+    },
+    {
+      "id": "p003", "type": "paragraph",
+      "original": "The change is part of an eight-week experiment. The town council has closed two blocks to through traffic between nine in the morning and one in the afternoon. Buses still use a nearby road, and a short delivery window allows shops to receive supplies before the closure begins.",
+      "translation": "这一变化是一项为期八周的试验的一部分。镇议会每周六上午九点至下午一点，禁止过境车辆通行其中的两个街区。公交车仍可走附近的道路，商店则可以利用封路前的一段短暂配送时段接收货物。"
+    },
+    {
+      "id": "h001", "type": "heading",
+      "original": "More visitors, but not the whole picture",
+      "translation": "人多了，但这并不是全貌"
+    },
+    {
+      "id": "p004", "type": "paragraph",
+      "original": "For Leah Morris, who runs a small cafe, the immediate benefit is time. Customers stay for a second cup rather than collecting a takeaway and leaving. She says the slower pace has made the street feel like a destination instead of a route to somewhere else.",
+      "translation": "对经营一家小咖啡馆的 Leah Morris 来说，最直接的好处体现在顾客停留的时间上。顾客会留下来再喝一杯，而不是拿了外带咖啡就走。她说，节奏慢下来后，这条街让人觉得是值得专程前往的地方，而不只是通往别处的一条路。"
+    },
+    {
+      "id": "p005", "type": "paragraph",
+      "original": "Not every business owner is convinced. The hardware shop depends on customers who collect heavy purchases by car. Its owner worries that a pleasant walk cannot replace a convenient loading space. Some older residents have also asked for clearer information about accessible drop-off points.",
+      "translation": "并非每一位店主都认同这一做法。五金店依赖开车来取走大件商品的顾客。店主担心，再愉快的步行体验也无法替代方便的装货位置。一些年长居民也提出，希望能更清楚地了解无障碍上下客点的位置。"
+    },
+    {
+      "id": "p006", "type": "paragraph",
+      "original": "Early sales figures offer encouragement, but little certainty. Several shops reported stronger Saturday trade during the first two weeks. Yet those weekends were unusually sunny, and a school fair brought extra visitors into town. Neither factor can be separated from the street experiment simply by comparing the totals.",
+      "translation": "初期销售数据令人鼓舞，却不足以得出确定的结论。几家商店表示，前两周的周六生意更好了。然而，那两个周末的天气格外晴朗，一场学校集市也为小镇带来了额外的访客。仅仅比较销售总额，无法将这两个因素的影响与街道试验的影响区分开来。"
+    },
+    {
+      "id": "p007", "type": "paragraph",
+      "original": "A fuller assessment would look beyond the closed blocks. If shoppers merely move their spending from one street to another, the town may gain less than individual shopkeepers expect. Traffic could also shift onto residential roads, creating costs that do not appear in the busiest cafes' sales records.",
+      "translation": "更完整的评估需要把目光投向封闭街区以外。如果购物者只是把原本在别的街道上的消费转移过来，小镇整体获得的收益可能低于个别店主的预期。车流也可能转入居民区道路，带来一些不会体现在生意最好的咖啡馆销售记录中的成本。"
+    },
+    {
+      "id": "l001", "type": "list",
+      "original": "Compare sales with similar Saturdays before the trial.\nCount visitors on nearby streets as well as inside the pedestrian area.\nAsk residents about deliveries, access and displaced traffic.",
+      "translation": "将销售额与试验前情况相近的周六进行比较。\n既统计步行区域内的访客，也统计邻近街道的访客。\n向居民了解配送、通行便利程度以及转移到其他道路的车流情况。"
+    },
+    {
+      "id": "h002", "type": "heading",
+      "original": "A public space is also a choice",
+      "translation": "如何使用公共空间，也是一种选择"
+    },
+    {
+      "id": "p008", "type": "paragraph",
+      "original": "The debate is about more than shopping. A street can move vehicles, support businesses and give people somewhere to meet. These uses compete for limited space. Keeping the road unchanged is therefore a choice too, even if it feels less visible than putting up a temporary barrier.",
+      "translation": "这场讨论并不只关乎购物。街道既可以供车辆通行，也可以支持商业活动，还可以为人们提供相聚的场所。这些用途争夺着有限的空间。因此，维持道路现状同样是一种选择，只是它可能没有摆上临时路障那么显眼。"
+    },
+    {
+      "id": "p009", "type": "paragraph",
+      "original": "The pilot gives the council a way to learn before making a lasting commitment. Officials plan to publish feedback and revise the delivery arrangements halfway through. They have not promised to make the closure permanent, and a successful summer trial would not automatically show that the same plan works in winter.",
+      "translation": "这项试点让镇议会能在作出长期决定之前先积累经验。相关负责人计划在试验进行到一半时公布反馈，并调整配送安排。他们并未承诺永久封闭街道；即使夏季试验取得成功，也不能据此直接证明同样的方案在冬季也行得通。"
+    },
+    {
+      "id": "p010", "type": "paragraph",
+      "original": "For now, Willowford's quieter Saturdays offer a question rather than a final answer: what should a town's main street do for the people who use it? Answering well will require both careful measurement and a willingness to listen to those whose needs are easiest to overlook.",
+      "translation": "目前，Willowford 更安静的周六提出的是一个问题，而非最终答案：小镇的主街应当为使用它的人发挥什么作用？要把这个问题回答好，既需要细致的衡量，也需要愿意倾听那些需求最容易被忽略的人的声音。"
+    }
+  ]
+}

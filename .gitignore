@@ -1,0 +1,25 @@
+# Personal library content stays local. Only the original demo is published.
+/data/*
+!/data/folders.json
+!/data/articles/
+/data/articles/*
+!/data/articles/demo-slower-saturday.json
+!/data/guides/
+/data/guides/*
+!/data/guides/demo-slower-saturday/
+
+/backups/
+/output/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+.codex/
+.agents/
+*.log
+*.bak
+*.lnk
+.DS_Store
+Thumbs.db
