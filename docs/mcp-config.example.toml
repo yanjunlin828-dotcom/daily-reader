@@ -8,7 +8,7 @@ cwd = "/absolute/path/to/daily-reader"
 startup_timeout_sec = 20
 tool_timeout_sec = 30
 default_tools_approval_mode = "writes"
-enabled_tools = ["prepare_article", "save_article", "list_articles", "get_article", "add_translations", "prepare_reading_guide", "save_reading_guide", "get_reading_guide"]
+enabled_tools = ["prepare_article", "save_article", "list_articles", "get_article", "add_translations", "prepare_reading_guide", "save_reading_guide", "get_reading_guide", "update_article_blocks", "delete_article", "restore_article"]
 
 [mcp_servers.english_news_library.env]
 PYTHONUTF8 = "1"

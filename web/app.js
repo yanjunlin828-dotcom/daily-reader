@@ -22,6 +22,7 @@ let drawerReturnFocus;
 let pointerStart = null;
 let storageUnavailable = false;
 let searchQuery = "";
+let librarySidebar;
 let preferences = {schema_version: 1, font_size: 20, last_article: null, folder: "all", list_label_mode: "title", show_paragraph_numbers: false, articles: {}};
 
 function element(tag, className, text) {
@@ -156,26 +157,17 @@ function renderNavigation() {
   modeButton.setAttribute("aria-pressed", String(dateMode));
   modeButton.setAttribute("aria-label", dateMode ? "改用文章名显示文章列表" : "改用载入日期显示文章列表");
   modeButton.title = dateMode ? "点击切换为文章名" : "点击切换为载入日期";
-  const list = $("#article-list");
-  const scrollTop = list.scrollTop;
-  list.replaceChildren();
-  if (!items.length) list.append(element("p", "sidebar-empty", searchQuery ? "没有匹配的文章，试试其他关键词。" : "还没有文章，点击右上角录入。"));
-  for (const item of items) {
-    const button = element("button", `article-button${article?.id === item.id ? " active" : ""}`);
-    button.type = "button";
-    button.dataset.articleId = item.id;
-    const loaded = importedDateLabel(item);
-    button.title = `${item.title}\n载入于 ${loaded}${item.translation_status !== "complete" ? " · 待补译" : ""}`;
-    button.setAttribute("aria-label", `${item.title}，载入于 ${loaded}`);
-    if (article?.id === item.id) button.setAttribute("aria-current", "true");
-    button.append(icon("document"), element("span", `article-name${dateMode ? " date-label" : ""}`, dateMode ? loaded : item.title));
-    button.addEventListener("click", () => {
-      closeDrawer(false);
-      loadArticle(item.id, {focus: true});
-    });
-    list.append(button);
-  }
-  list.scrollTop = scrollTop;
+  librarySidebar.render({items: items.map(item => ({...item, date: importedDateLabel(item),
+    hint: `${item.title}\n载入于 ${importedDateLabel(item)}${item.translation_status !== "complete" ? " · 待补译" : ""}`})),
+    allItems: library.articles, activeId: article?.id, dateMode, searching: Boolean(searchQuery),
+    organization: library.organization, error: library.organization_error});
+}
+
+function syncBreadcrumb() {
+  if (reader.hidden) return;
+  const id = library?.organization?.article_folders[article?.id];
+  const folder = library?.organization?.folders.find(item => item.id === id);
+  $("#breadcrumb").textContent = folder ? `文章库 / ${folder.name}` : "文章库";
 }
 
 function screenState(title, description, buttonText, action) {
@@ -249,7 +241,8 @@ function blockNode(block, index, paragraphNumber) {
     clearTimeout(textClickTimer);
     const moved = pointerStart && Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 6;
     pointerStart = null;
-    if (moved || event.detail > 1 || !window.getSelection()?.isCollapsed) return;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+        moved || event.detail > 1 || !window.getSelection()?.isCollapsed) return;
     // A double-click selects a word; do not toggle on its first click.
     textClickTimer = setTimeout(() => {
       if (section.isConnected && window.getSelection()?.isCollapsed) toggleBlock(block.id);
@@ -329,8 +322,8 @@ function guideContents() {
   const nodes = [element("h2", "guide-title", "中文导读")];
   if (!article.reading_guide) {
     const empty = element("div", "guide-empty");
-    empty.append(element("p", "", article.reading_guide_error ? "导读暂时无法读取" : "这篇文章还没有导读"),
-      element("p", "", article.reading_guide_error ? "请刷新文章库后重试，仍可切回原文继续阅读。" : "添加后，就可以在这里阅读分好段的中文导读。"));
+    empty.append(element("p", "", article.reading_guide_error ? "导读暂时无法读取" : article.reading_guide_stale ? "原文已更新，导读待更新" : "这篇文章还没有导读"),
+      element("p", "", article.reading_guide_error ? "请刷新文章库后重试，仍可切回原文继续阅读。" : article.reading_guide_stale ? "旧导读已保留，可根据当前原文重新生成并导入。" : "添加后，就可以在这里阅读分好段的中文导读。"));
     nodes.push(empty);
   } else {
     let paragraphNumber = 0;
@@ -352,6 +345,7 @@ function guideContents() {
 
 async function toggleReadingGuide() {
   if (!article) return;
+  window.ReaderDictionary?.close();
   saveReading();
   const toGuide = readingMode !== "guide";
   const token = ++viewSwapVersion;
@@ -481,7 +475,7 @@ function renderArticle(data) {
   content.replaceChildren(views);
   updateNextArticle();
   document.title = `${data.title} · Daily Reader`;
-  $("#breadcrumb").textContent = `${folderLabels.get(data.folder_id)} / 文章库`;
+  syncBreadcrumb();
   applyFont();
   updateReadingLayout();
   syncExpansion();
@@ -502,6 +496,7 @@ function updateNextArticle() {
 }
 
 async function loadArticle(id, {focus = false, initial = false} = {}) {
+  window.ReaderDictionary?.close();
   hideImportPanel();
   saveReading();
   ReaderViewMotion.finish();
@@ -582,6 +577,7 @@ async function loadLibrary() {
 
 function openDrawer() {
   if (!matchMedia("(max-width: 760px)").matches) return;
+  window.ReaderDictionary?.close();
   drawerReturnFocus = document.activeElement;
   $("#sidebar").classList.add("drawer-open");
   $("#sidebar").setAttribute("role", "dialog");
@@ -593,6 +589,7 @@ function openDrawer() {
 }
 
 function closeDrawer(returnFocus = true) {
+  librarySidebar?.closeMenu(false);
   const wasOpen = $("#sidebar").classList.contains("drawer-open");
   $("#sidebar").classList.remove("drawer-open");
   $("#sidebar").removeAttribute("role");
@@ -607,10 +604,11 @@ $("#open-library").addEventListener("click", openDrawer);
 $("#close-library").addEventListener("click", () => closeDrawer());
 $("#drawer-backdrop").addEventListener("click", () => closeDrawer());
 document.addEventListener("keydown", (event) => {
+  if (event.defaultPrevented || event.target.closest?.("dialog[open], [role=menu]")) return;
   if (!$("#sidebar").classList.contains("drawer-open")) return;
   if (event.key === "Escape") closeDrawer();
   if (event.key === "Tab") {
-    const buttons = [...$("#sidebar").querySelectorAll("button,input")].filter((button) => !button.disabled && button.getClientRects().length);
+    const buttons = [...$("#sidebar").querySelectorAll("button,input")].filter((button) => !button.disabled && !button.closest("[inert]") && button.getClientRects().length);
     const first = buttons[0], last = buttons.at(-1);
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
@@ -619,7 +617,7 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
   if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-  if (!article || restoring || reader.hidden || $("#main").inert || $("#sidebar").classList.contains("drawer-open")) return;
+  if (!article || restoring || reader.hidden || $("#main").inert || $("#sidebar").classList.contains("drawer-open") || document.querySelector("dialog[open]")) return;
   const target = event.target;
   // Leave cursor movement, text selection and native widget navigation intact.
   if (target.isContentEditable || target.closest?.("input, textarea, select, [contenteditable]:not([contenteditable=false]), [role=textbox], [role=combobox], [role=slider], [role=spinbutton], [role=menu], [role=listbox], [role=tablist]")) return;
@@ -666,18 +664,42 @@ async function refreshLibrary({openId = null} = {}) {
       $("#article-search").value = "";
     }
     renderNavigation();
+    syncBreadcrumb();
     $("#notice").hidden = !next.warnings.length;
     $("#notice").textContent = next.warnings.join(" ");
     if (openId) await loadArticle(openId, {focus: true});
     else if (article && !reader.hidden) {
       const latest = next.articles.find((item) => item.id === article.id);
-      if (latest && latest.content_version !== article.content_version) await loadArticle(article.id);
+      if (!latest) {
+        saveReading();
+        window.ReaderDictionary?.close();
+        ReaderViewMotion.finish();
+        viewSwapVersion++;
+        requestVersion++;
+        viewSwitching = false;
+        restoring = false;
+        $("#main").classList.remove("reading-view-switching");
+        reader.removeAttribute("aria-busy");
+        article = null;
+        readingMode = "article";
+        document.title = "Daily Reader";
+        $("#breadcrumb").textContent = "文章库";
+        renderNavigation();
+        const first = visibleArticles()[0];
+        if (first) await loadArticle(first.id);
+        else {
+          screenState("当前文章已移出文章库", "可以在左侧选择其他文章，或通过 MCP 恢复回收区中的文章。");
+          updateMeter();
+        }
+      }
+      else if (latest.content_version !== article.content_version) await loadArticle(article.id);
       else {
         const loadedId = article.id;
         const current = await api(`/api/articles/${encodeURIComponent(loadedId)}`);
         if (!article || article.id !== loadedId) return true;
         article.reading_guide = current.reading_guide;
         article.reading_guide_error = current.reading_guide_error;
+        article.reading_guide_stale = current.reading_guide_stale;
         ReaderViewMotion.finish();
         $("#guide-view").replaceChildren(...guideContents());
         updateNextArticle();
@@ -718,6 +740,7 @@ $("#toggle-paragraph-numbers").addEventListener("click", () => {
 });
 $("#open-import").addEventListener("click", () => {
   if (!library) { toast("请先连接文章库，再录入文章。"); return; }
+  window.ReaderDictionary?.close();
   saveReading();
   viewSwapVersion++;
   ReaderViewMotion.finish();
@@ -739,15 +762,27 @@ $("#open-import").addEventListener("click", () => {
 $("#cancel-import").addEventListener("click", () => {
   hideImportPanel();
   if (!article && library?.articles.length) {
-    loadArticle(preferences.last_article || library.articles[0].id, {focus: true});
+    loadArticle(library.articles.find(item => item.id === preferences.last_article)?.id || library.articles[0].id, {focus: true});
     return;
   }
-  if (article) $("#breadcrumb").textContent = `${folderLabels.get(article.folder_id)} / 文章库`;
+  if (article) syncBreadcrumb();
   else $("#breadcrumb").textContent = "英语新闻阅读库";
   updateMeter();
   $("#open-import").focus();
 });
 window.addEventListener("reader:open-article", (event) => refreshLibrary({openId: event.detail.articleId}));
+librarySidebar = new ReaderLibrary({
+  root: $("#article-list"), newButton: $("#new-folder"), onNotice: toast,
+  onOpen: id => { closeDrawer(false); loadArticle(id, {focus: true}); },
+  onOrganization: (organization, {created = false} = {}) => {
+    library.organization = organization;
+    delete library.organization_error;
+    if (created) { searchQuery = ""; $("#article-search").value = ""; }
+    renderNavigation();
+    syncBreadcrumb();
+  },
+  onReload: next => { library = next; renderNavigation(); syncBreadcrumb(); }
+});
 readPreferences();
 syncParagraphNumbers();
 applyFont();

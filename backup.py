@@ -12,8 +12,10 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
-from storage import ArticleStore, DataError
+from storage import ArticleStore, DataError, ID_PATTERN
 from reading_guide import ReadingGuideStore
+from organization import OrganizationStore
+from article_lifecycle import ArticleLifecycle
 
 ROOT = Path(__file__).resolve().parent
 MANIFEST = "backup-manifest.json"
@@ -36,7 +38,7 @@ def digest(payload):
 
 def validate_library(directory):
     store = ArticleStore(directory)
-    index = store.index()
+    index = store.index(include_deleted=True)
     if index["warnings"]:
         raise DataError("文章库含无法读取的文章，暂停备份/恢复")
     versions = {}
@@ -45,14 +47,34 @@ def validate_library(directory):
     for item in index["articles"]:
         snapshots = store._snapshots(item["id"])
         for version in snapshots:
-            store.get(item["id"], version)
+            store.get(item["id"], version, include_deleted=True)
         versions[item["id"]] = sorted(snapshots)
-        guide = guides.get(item["id"])
-        if guide:
-            guide_versions[item["id"]] = guide["guide_version"]
-    result = {"articles": len(index["articles"]), "versions": versions}
+        stored_guides = guides.versions(item["id"], include_deleted=True)
+        if stored_guides:
+            guide_versions[item["id"]] = max(stored_guides)
+    result = {"articles": sum(not item["deleted"] for item in index["articles"]), "versions": versions}
     if guide_versions:
         result["guides"] = guide_versions
+    organization = OrganizationStore(store)
+    current = organization.get()
+    article_ids = {item["id"] for item in index["articles"]}
+    lifecycle = ArticleLifecycle(store)
+    states = {item["id"]: item["state_version"] for item in index["articles"] if item["state_version"]}
+    if lifecycle.directory.exists():
+        lifecycle._inside(lifecycle.directory)
+        for entry in lifecycle.directory.iterdir():
+            lifecycle._inside(entry)
+            if entry.is_dir() and ID_PATTERN.fullmatch(entry.name):
+                history = lifecycle.history(entry.name)
+                if history and entry.name not in article_ids:
+                    raise DataError("回收区引用了无法读取的文章，暂停备份/恢复")
+    if states:
+        result["article_states"] = states
+    for revision in organization.revisions():
+        if set(organization.get(revision)["article_folders"]) - article_ids:
+            raise DataError("目录记录引用了无法读取的文章，暂停备份/恢复")
+    if current["revision"]:
+        result["organization_revision"] = current["revision"]
     return result
 
 

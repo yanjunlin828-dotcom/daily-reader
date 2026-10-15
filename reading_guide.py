@@ -44,35 +44,43 @@ class ReadingGuideStore:
             raise DataError("导读路径不安全")
         return resolved
 
-    def get(self, article_id):
-        article = self.articles.get(article_id)  # Validate the ID and owning article first.
+    def versions(self, article_id, *, include_deleted=False):
+        article = self.articles.get(article_id, include_deleted=include_deleted)
         if not self.directory.exists():
-            return None
+            return {}
         self._inside(self.directory)
         directory = self.directory / article_id
         if not directory.exists():
-            return None
+            return {}
         self._inside(directory)
-        commits = []
+        commits = {}
         for entry in directory.iterdir():
-            if re.fullmatch(r"v00000001-[a-f0-9]{32}", entry.name):
+            match = re.fullmatch(r"v(\d{8})-[a-f0-9]{32}", entry.name)
+            if match:
                 self._inside(entry)
                 marker = entry / "COMMITTED"
                 if marker.is_file():
                     self._inside(marker)
-                    commits.append(entry)
-        if not commits:
-            return None
-        if len(commits) != 1:
-            raise DataError("同一文章存在多份已发布导读，停止读取以避免猜测")
-        guide = self.articles._read(commits[0] / "guide.json")
+                    version = int(match[1])
+                    if version < 1 or version in commits:
+                        raise DataError("同一文章存在重复或无效的导读版本，停止读取以避免猜测")
+                    commits[version] = entry
+        if commits and max(commits) != len(commits):
+            raise DataError("中文导读历史版本不完整")
+        return {version: self._read_guide(article, version, entry / "guide.json") for version, entry in commits.items()}
+
+    def _read_guide(self, article, version, path):
+        article_id = article["id"]
+        guide = self.articles._read(path)
         required = {"schema_version", "article_id", "guide_version", "source_content_version", "source_fingerprint", "created_at", "blocks"}
         if (not isinstance(guide, dict) or set(guide) != required or type(guide["schema_version"]) is not int
-                or guide["schema_version"] != 1 or type(guide["guide_version"]) is not int or guide["guide_version"] != 1
+                or guide["schema_version"] != 1 or type(guide["guide_version"]) is not int or guide["guide_version"] != version
                 or guide["article_id"] != article_id or type(guide["source_content_version"]) is not int
-                or not 1 <= guide["source_content_version"] <= article["content_version"]
-                or guide["source_fingerprint"] != original_fingerprint(article)):
+                or not 1 <= guide["source_content_version"] <= article["content_version"]):
             raise DataError("导读身份、结构版本或对应原文校验失败")
+        source = self.articles.get(article_id, guide["source_content_version"], include_deleted=True)
+        if guide["source_fingerprint"] != original_fingerprint(source):
+            raise DataError("导读与其历史原文校验失败")
         try:
             if not isinstance(guide["created_at"], str) or datetime.fromisoformat(guide["created_at"]).tzinfo is None:
                 raise ValueError("invalid guide date")
@@ -81,6 +89,16 @@ class ReadingGuideStore:
         validate_blocks(guide["blocks"])
         return guide
 
+    def status(self, article_id, *, include_deleted=False):
+        article = self.articles.get(article_id, include_deleted=include_deleted)
+        versions = self.versions(article_id, include_deleted=include_deleted)
+        matching = [guide for guide in versions.values() if guide["source_fingerprint"] == original_fingerprint(article)]
+        guide = max(matching, key=lambda item: item["guide_version"], default=None)
+        return {"guide": guide, "stale": bool(versions) and guide is None}
+
+    def get(self, article_id, *, include_deleted=False):
+        return self.status(article_id, include_deleted=include_deleted)["guide"]
+
     def prepare(self, article_id, raw_text, split_mode="blank_lines"):
         article = self.articles.get(article_id)
         if not isinstance(raw_text, str) or len(raw_text.encode("utf-8")) > MAX_FILE_BYTES:
@@ -88,8 +106,9 @@ class ReadingGuideStore:
         blocks = [{"id": f"g{index:03d}", "type": block["type"], "text": block["original"]}
                   for index, block in enumerate(split_plain(raw_text, split_mode), 1)]
         validate_blocks(blocks)
+        status = self.status(article_id)
         return {"article_id": article_id, "expected_content_version": article["content_version"], "blocks": blocks,
-                "saved": False, "guide_exists": self.get(article_id) is not None}
+                "saved": False, "guide_exists": status["guide"] is not None, "guide_stale": status["stale"]}
 
     def save(self, article_id, expected_content_version, blocks, *, confirmed=False):
         if confirmed is not True:
@@ -107,7 +126,8 @@ class ReadingGuideStore:
                 raise ConflictError("这篇文章已有不同的中文导读，不会覆盖。", "guide_exists", article_id)
             if article["content_version"] != expected_content_version:
                 raise ConflictError("文章版本已经变化，请回读后再保存导读。", "version_conflict", article_id)
-            guide = {"schema_version": 1, "article_id": article_id, "guide_version": 1,
+            version = max(self.versions(article_id), default=0) + 1
+            guide = {"schema_version": 1, "article_id": article_id, "guide_version": version,
                      "source_content_version": expected_content_version, "source_fingerprint": original_fingerprint(article),
                      "created_at": datetime.now(timezone.utc).isoformat(), "blocks": blocks}
             payload = json.dumps(guide, ensure_ascii=False, indent=2).encode("utf-8")
@@ -118,7 +138,7 @@ class ReadingGuideStore:
             directory = self.directory / article_id
             directory.mkdir(exist_ok=True)
             self._inside(directory)
-            commit = directory / f"v00000001-{uuid.uuid4().hex}"
+            commit = directory / f"v{version:08d}-{uuid.uuid4().hex}"
             commit.mkdir()
             with (commit / "guide.json").open("xb") as stream:
                 stream.write(payload)

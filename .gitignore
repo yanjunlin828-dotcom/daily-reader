@@ -8,6 +8,11 @@
 /data/guides/*
 !/data/guides/demo-slower-saturday/
 
+# Downloaded/generated dictionary files stay local.
+/resources/ecdict/*.csv
+/resources/ecdict/*.sqlite
+/resources/ecdict/manifest.json
+
 /backups/
 /output/
 __pycache__/

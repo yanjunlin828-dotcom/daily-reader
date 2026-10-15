@@ -18,7 +18,7 @@ python -m pip install -r requirements-mcp.txt
 
 仓库不包含注册或修改全局配置的自动脚本。不要把示例路径直接当作可运行配置。
 
-服务提供八个工具：
+服务提供十一个工具：
 
 | 用途 | 工具 |
 | --- | --- |
@@ -26,9 +26,11 @@ python -m pip install -r requirements-mcp.txt
 | 新增文章 | `save_article` |
 | 查询文章 | `list_articles`、`get_article` |
 | 补充空缺译文 | `add_translations` |
+| 校改已有段落 | `update_article_blocks` |
+| 可恢复删除及恢复 | `delete_article`、`restore_article` |
 | 准备、保存和读取中文导读 | `prepare_reading_guide`、`save_reading_guide`、`get_reading_guide` |
 
-保存需要当前用户授权、`confirmed=true` 和通过结构校验。补译核对文章版本、块编号及原文，只填空缺；导读独立保存，不改文章版本，也不覆盖已有不同导读。
+保存需要当前用户授权、`confirmed=true` 和通过结构校验。补译核对文章版本、块编号及原文，只填空缺；导读独立保存，不改文章版本，也不覆盖当前有效的不同导读。英文校改使旧导读过期时，可以追加当前原文的导读版本。校改及回收的授权、版本核对与回读要求见 [文章维护](article-maintenance.md)。
 
 ## 使用 Skill
 

@@ -2,7 +2,7 @@
 
 `library_cli.py` 使用已有官方 SDK 启动同一个 STDIO MCP，所有操作仍经过相同校验。不得直接修改 data JSON 代替工具，也不把此方式描述为原生工具已加载。
 
-解释器使用已安装 requirements-mcp.txt 的 Python，工作目录为当前用户指定的 daily-reader 仓库根目录。使用 `-B -X utf8`；若 SDK 缺失，先说明这一前提，不自动安装依赖或修改用户配置。
+在当前用户指定的 daily-reader 仓库根目录执行，使用已经安装 requirements-mcp.txt 的 Python 解释器。使用 `-B -X utf8`；不自动安装依赖或修改用户配置。
 
 工具参数先写到项目 output 内一个新的 UTF-8 JSON 请求文件，不覆盖已有文件。参数与原生工具相同，但 JSON 不含 confirmed：
 
@@ -15,9 +15,12 @@ python -B -X utf8 library_cli.py add_translations --request output/translations-
 python -B -X utf8 library_cli.py prepare_reading_guide --request output/guide-prepare-唯一编号.json --output output/guide-preview-唯一编号.json
 python -B -X utf8 library_cli.py save_reading_guide --request output/guide-save-唯一编号.json --confirmed
 python -B -X utf8 library_cli.py get_reading_guide --request output/guide-get-唯一编号.json
+python -B -X utf8 library_cli.py update_article_blocks --request output/blocks-update-唯一编号.json --confirmed
+python -B -X utf8 library_cli.py delete_article --request output/article-delete-唯一编号.json --confirmed
+python -B -X utf8 library_cli.py restore_article --request output/article-restore-唯一编号.json --confirmed
 ```
 
-`--confirmed` 只用于已有本次保存授权的写操作。`--output` 只创建新结果文件；错误或中断可能留下空结果文件，保留以供调查。命令不成功时先回读库确认是否保存，不能据空文件猜测结果。
+`--confirmed` 只用于已有本次授权的写操作。`--output` 只创建新结果文件；错误或中断可能留下空结果文件，保留以供调查。命令不成功时先回读库确认是否保存，不能据空文件猜测结果。
 
 prepare 返回 `{article, warnings}`；save 请求需要 `{article}` 完整对象。读取时用 `{article_id, content_version, block_offset, block_limit}`，current version 可首次省略。补译请求为 `{article_id, expected_version, translations}`，每项严格只含 block_id、original、translation。输出是 UTF-8 JSON。
 

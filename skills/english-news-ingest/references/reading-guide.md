@@ -10,9 +10,11 @@
 
 正文按空行分段，需要时用独立的 `# 中文小标题`，列表用 `- 项目`。不要为每个段落强行加标题。工具会给每块稳定的 g001、g002 编号；这些编号与英文的 p001 无关。
 
+本项目的导读直接从文章分析开始，不导入“沿用本对话”“段号已校正”或编号计算规则等操作说明；需要说明时在聊天中交代，除非用户明确要求将其写入导读。
+
 ## 导入
 
-1. get_reading_guide({article_id}) 查是否已有导读。已有内容沿用并告知用户；不覆盖、不换 article_id 绕过保护。
+1. get_reading_guide({article_id}) 查是否已有导读。已有当前导读沿用并告知用户；不覆盖、不换 article_id 绕过保护。guide=null 且 stale=true 表示英文校改后旧导读过期；先读齐当前全文，有当前导读保存授权时可创建新导读版本，旧版仍保留。
 2. prepare_reading_guide({article_id, raw_text, split_mode: "blank_lines"}) 得到未保存的 `{article_id, expected_content_version, blocks, saved:false, guide_exists}`。每个 blocks 项严格只有 `{id, type, text}`，类型 paragraph/heading/list。默认空行分段；确知每行独立成段时才用 every_line。核对分段、完整性与中文内容。
 3. 核对预览的 expected_content_version 与刚才读齐原文的版本相同。若不同，先回读确认原文没变，再保存。save_reading_guide({article_id, expected_content_version, blocks, confirmed:true}) 原样提交预览块，不提交整个预览对象。没有当前保存授权时止于预览。
 4. 用 get_reading_guide 回读并逐块比对 id/type/text、块数和文章编号。工具返回 saved/unchanged 不能替代回读。保存不会增加文章 content_version，不改变原文、译文或阅读记录。

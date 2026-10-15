@@ -1,0 +1,99 @@
+/* A compact file list, with organization controls revealed only when needed. */
+.library-heading-actions { display: flex; align-items: center; gap: 2px; }
+.library-new-folder { width: 30px; height: 32px; min-height: 32px; }
+.library-new-folder .icon { width: 18px; height: 18px; }
+.library-folder { margin-bottom: 2px; }
+.folder-row { display: flex; align-items: center; border-radius: 7px; }
+.folder-row:hover { background: #e8e9e1; }
+.folder-toggle {
+  display: flex; flex: 1; min-width: 0; min-height: 36px; align-items: center;
+  gap: 6px; padding: 6px 2px 6px 4px; text-align: left; font-size: 13px;
+  color: var(--ink); border-radius: 7px;
+}
+.folder-toggle > .icon { width: 16px; height: 16px; color: var(--muted); }
+.folder-toggle > .icon:first-child { width: 12px; height: 12px; transform: rotate(-90deg); transition: transform 160ms ease; }
+.is-open > .folder-row .folder-toggle > .icon:first-child { transform: rotate(0); }
+.folder-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; margin-left: 4px; }
+.folder-children { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 180ms ease, opacity 140ms ease; }
+.is-open > .folder-children { grid-template-rows: 1fr; opacity: 1; }
+.folder-children-inner { min-height: 0; overflow: hidden; padding-left: 17px; }
+.folder-empty { margin: 0; padding: 6px 9px 9px 23px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.library-more {
+  display: grid; place-items: center; flex-shrink: 0; width: 26px; height: 28px;
+  margin: 0 3px; border-radius: 6px; color: var(--muted); opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+.library-more .icon { width: 16px; height: 16px; }
+.folder-row:hover > .library-more, .folder-row:focus-within > .library-more,
+.library-article-row:hover > .library-more, .library-article-row:focus-within > .library-more,
+.library-more[aria-expanded=true] { opacity: 1; }
+.library-more:hover:not(:disabled) { color: var(--green); background: var(--control-pressed); }
+.library-article-row { position: relative; border-radius: 7px; }
+.library-article-row > .article-button { padding-right: 32px; }
+.library-article-row > .library-more { position: absolute; top: 4px; right: 0; }
+.library-article-row.is-drag-source { opacity: .35; }
+.folder-toggle:focus-visible { outline-offset: -2px; }
+.library-root { min-height: 28px; }
+.library-root-drop {
+  display: none; position: sticky; bottom: 0; align-items: center; justify-content: center;
+  min-height: 38px; margin: 7px 0 0; padding: 7px; border: 1px dashed #a6b6a7;
+  border-radius: 7px; background: var(--sidebar); color: var(--green); font-size: 12px;
+}
+.is-dragging .library-root-drop { display: flex; }
+.library-folder.is-drop-target > .folder-row, .library-root.is-drop-target > .library-root-drop {
+  background: #e3eadf; outline: 1px solid #a6b6a7; outline-offset: -1px;
+}
+.library-drag-preview {
+  position: fixed; left: -1000px; top: 0; z-index: 40; display: flex; align-items: center;
+  gap: 8px; width: 230px; padding: 9px 12px; border: 1px solid var(--line);
+  background: var(--paper); border-radius: 7px; color: var(--ink); font: 13px var(--ui);
+}
+.library-drag-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.library-drag-preview .icon { width: 16px; height: 16px; }
+.folder-editor { padding: 2px 4px 7px; }
+.folder-editor-line { display: flex; align-items: center; gap: 7px; }
+.folder-editor-line > .icon { width: 17px; height: 17px; color: var(--green); }
+.folder-name-input {
+  min-width: 0; width: 100%; min-height: 32px; padding: 5px 7px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--paper); color: var(--ink); font: 13px var(--ui);
+}
+.folder-edit-message, .library-directory-error { margin: 4px 0 0 24px; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.folder-edit-message[role=alert], .folder-delete-error { color: #814631; }
+.library-directory-error { margin: 5px 6px 10px; }
+.library-menu {
+  position: fixed; z-index: 25; min-width: 154px; max-width: min(260px, calc(100vw - 16px));
+  max-height: min(360px, calc(100dvh - 16px)); overflow-y: auto; padding: 5px;
+  background: #fffefb; border: 1px solid var(--line); border-radius: 9px;
+}
+.library-menu > button {
+  display: block; width: 100%; min-height: 34px; padding: 7px 11px; text-align: left;
+  color: var(--ink); border-radius: 5px; font: 13px var(--ui); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.library-menu > button:hover:not(:disabled), .library-menu > button:focus-visible { background: var(--control-hover); }
+.library-menu > button.menu-danger { color: #814631; }
+.library-menu > button[aria-checked=true] { color: var(--green); opacity: 1; background: var(--control-hover); }
+.library-delete-dialog {
+  max-width: min(380px, calc(100vw - 40px)); padding: 25px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--paper); color: var(--ink); font: 14px var(--ui);
+}
+.library-delete-dialog::backdrop { background: #26382c38; }
+.library-delete-dialog h2 { margin: 0 0 12px; font-size: 18px; font-weight: 500; }
+.library-delete-dialog p { margin: 0 0 14px; line-height: 1.9; overflow-wrap: anywhere; }
+.library-delete-dialog .folder-delete-error:empty { display: none; }
+.library-dialog-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 20px; }
+.folder-delete-confirm { min-height: 36px; padding: 7px 12px; border: 1px solid #d8c7bb; color: #814631; border-radius: 8px; font-size: 13px; }
+.folder-delete-confirm:hover:not(:disabled) { background: #f2e9e1; }
+@media (max-width: 760px) {
+  .library-new-folder { width: 38px; height: 44px; min-height: 44px; }
+  .folder-toggle { min-height: 44px; }
+  .library-more { width: 44px; height: 44px; margin: 0; opacity: 1; }
+  .library-article-row > .library-more { top: 0; }
+  .library-article-row > .article-button { padding-right: 44px; }
+  .library-menu > button, .folder-name-input, .folder-delete-confirm { min-height: 44px; }
+}
+@media (hover: none) { .library-more { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .folder-children, .folder-toggle > .icon:first-child, .library-more { transition: none; }
+}

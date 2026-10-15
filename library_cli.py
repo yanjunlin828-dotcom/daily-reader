@@ -13,8 +13,9 @@ from mcp.client.stdio import stdio_client
 
 ROOT = Path(__file__).resolve().parent
 TOOLS = {"list_articles", "get_article", "prepare_article", "save_article", "add_translations",
-         "prepare_reading_guide", "get_reading_guide", "save_reading_guide"}
-WRITES = {"save_article", "add_translations", "save_reading_guide"}
+         "prepare_reading_guide", "get_reading_guide", "save_reading_guide",
+         "update_article_blocks", "delete_article", "restore_article"}
+WRITES = {"save_article", "add_translations", "save_reading_guide", "update_article_blocks", "delete_article", "restore_article"}
 
 
 def inside(path, *, must_exist=True):
@@ -45,7 +46,7 @@ def main():
     parser.add_argument("tool", choices=sorted(TOOLS))
     parser.add_argument("--request", type=Path, help="UTF-8 参数 JSON；省略时从标准输入读取")
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
-    parser.add_argument("--confirmed", action="store_true", help="仅在用户明确授权当前保存/补译后使用")
+    parser.add_argument("--confirmed", action="store_true", help="仅在用户明确授权当前写操作后使用")
     parser.add_argument("--output", type=Path, help="可选：只创建新的结果文件，不覆盖")
     args = parser.parse_args()
     for stream in (sys.stdin, sys.stdout, sys.stderr):
@@ -70,7 +71,7 @@ def main():
             raise ValueError("请求中不要放 confirmed；写操作使用显式 --confirmed")
         if args.tool in WRITES:
             if not args.confirmed:
-                raise ValueError("保存/补译需要用户授权及 --confirmed；未调用写工具")
+                raise ValueError("写操作需要当前用户授权及 --confirmed；未调用写工具")
             arguments["confirmed"] = True
         elif args.confirmed:
             raise ValueError("读取和准备无需 --confirmed")
@@ -87,8 +88,10 @@ def main():
             output_stream.flush()
             article = result.get("article", {})
             guide = result.get("guide") or {}
+            lifecycle = result.get("lifecycle") or {}
             print(json.dumps({"output": str(output), "tool": args.tool, "saved": result.get("saved", False),
-                "article_id": article.get("id") or result.get("article_id") or guide.get("article_id"), "content_version": article.get("content_version"),
+                "article_id": article.get("id") or result.get("article_id") or guide.get("article_id"), "content_version": article.get("content_version") or lifecycle.get("content_version"),
+                "lifecycle": result.get("lifecycle"),
                 "guide_version": guide.get("guide_version"),
                 "returned_blocks": len(article.get("blocks") or guide.get("blocks") or result.get("blocks") or []),
                 "warnings": result.get("warnings", [])}, ensure_ascii=False))

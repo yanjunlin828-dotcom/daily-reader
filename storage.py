@@ -169,7 +169,9 @@ class ArticleStore:
                 snapshots[version] = commit / "article.json"
         return snapshots
 
-    def get(self, article_id, content_version=None):
+    def get(self, article_id, content_version=None, *, include_deleted=False):
+        if not include_deleted and self.lifecycle(article_id)["deleted"]:
+            raise ConflictError("文章已移入回收区；可显式读取并恢复。", "article_deleted", article_id)
         snapshots = self._snapshots(article_id)
         if not snapshots:
             raise FileNotFoundError(article_id)
@@ -181,6 +183,20 @@ class ArticleStore:
         if article["id"] != article_id or article["content_version"] != version:
             raise DataError("文章编号或版本与存储位置不一致")
         return article
+
+    def lifecycle(self, article_id):
+        from article_lifecycle import ArticleLifecycle
+        return ArticleLifecycle(self).get(article_id)
+
+    def delete(self, article_id, expected_version, expected_state_version, expected_title, *, confirmed=False):
+        from article_lifecycle import ArticleLifecycle
+        return ArticleLifecycle(self).set_deleted(article_id, expected_version, expected_state_version,
+            expected_title, deleted=True, confirmed=confirmed)
+
+    def restore(self, article_id, expected_version, expected_state_version, expected_title, *, confirmed=False):
+        from article_lifecycle import ArticleLifecycle
+        return ArticleLifecycle(self).set_deleted(article_id, expected_version, expected_state_version,
+            expected_title, deleted=False, confirmed=confirmed)
 
     @contextmanager
     def _write_lock(self):
@@ -253,11 +269,11 @@ class ArticleStore:
             if self._snapshots(article["id"]):
                 raise ConflictError("这个文章编号已经存在，没有覆盖原文章。", "duplicate_article", article["id"])
             fingerprint = original_fingerprint(article)
-            index = self.index()
+            index = self.index(include_deleted=True)
             if index["warnings"]:
                 raise DataError("文章库有无法读取的文件，请先检查；暂停保存以确保重复检查可靠")
             for item in index["articles"]:
-                if original_fingerprint(self.get(item["id"])) == fingerprint:
+                if original_fingerprint(self.get(item["id"], include_deleted=True)) == fingerprint:
                     raise ConflictError("相同英文原文已在文章库中，没有重复保存。", "duplicate_article", item["id"])
             return self._commit(article)
 
@@ -297,7 +313,55 @@ class ArticleStore:
             validate_article(article, {folder["id"] for folder in self.folders()})
             return {"article": self._commit(article), "unchanged": False}
 
-    def index(self):
+    def update_blocks(self, article_id, expected_version, updates, *, confirmed=False):
+        if confirmed is not True:
+            raise DataError("修改段落需要当前用户明确授权及 confirmed=true")
+        if type(expected_version) is not int or expected_version < 1:
+            raise DataError("expected_version 必须是当前文章版本")
+        if not isinstance(updates, list) or not 1 <= len(updates) <= 1000:
+            raise DataError("需提供1–1000个段落修改项")
+        updates = copy.deepcopy(updates)
+        with self._write_lock():
+            article = self.get(article_id)
+            if article["content_version"] != expected_version:
+                raise ConflictError("文章版本已变化，请回读后重新核对修改。", "version_conflict", article_id)
+            before = copy.deepcopy(article)
+            blocks = {block["id"]: block for block in article["blocks"]}
+            seen = set()
+            for item in updates:
+                if not isinstance(item, dict) or set(item) != {"block_id", "before", "after"}:
+                    raise DataError("修改项需包含 block_id、before（完整旧块）、after（新字段）")
+                block_id = item["block_id"]
+                _identifier(block_id, "内容块编号", BLOCK_PATTERN)
+                if block_id not in blocks or block_id in seen:
+                    raise DataError("修改的段落编号不存在或重复")
+                seen.add(block_id)
+                block = blocks[block_id]
+                if not isinstance(item["before"], dict) or item["before"] != block:
+                    raise ConflictError("目标段落与读取到的旧内容不一致，整批未保存。", "block_mismatch", article_id)
+                change = item["after"]
+                if not isinstance(change, dict) or not change or set(change) - {"type", "original", "translation"}:
+                    raise DataError("after 仅可修改 type、original、translation；段落编号及顺序保持不变")
+                if "original" in change and change["original"] != block["original"] and "translation" not in change:
+                    raise DataError("修改英文时必须同时提供新 translation，或显式设为 null 后重新翻译")
+                block.update(change)
+            if article == before:
+                return {"article": article, "unchanged": True, "original_changed": False}
+            article["content_version"] += 1
+            article["translation_status"] = translation_status(article["blocks"])
+            validate_article(article, {folder["id"] for folder in self.folders()})
+            changed_original = original_fingerprint(before) != original_fingerprint(article)
+            if changed_original:
+                index = self.index(include_deleted=True)
+                if index["warnings"]:
+                    raise DataError("文章库含无法读取的内容，暂停原文修改以保证查重可靠")
+                for item in index["articles"]:
+                    if (item["id"] != article_id and original_fingerprint(self.get(item["id"], include_deleted=True))
+                            == original_fingerprint(article)):
+                        raise ConflictError("修改后的英文原文与另一篇文章重复。", "duplicate_article", item["id"])
+            return {"article": self._commit(article), "unchanged": False, "original_changed": changed_original}
+
+    def index(self, *, include_deleted=False):
         folders = self.folders()
         if not self.articles_dir.resolve(strict=True).is_relative_to(self.data_dir):
             raise DataError("文章目录越出数据目录")
@@ -312,12 +376,17 @@ class ArticleStore:
                         article_ids.add(directory.name)
         for article_id in sorted(article_ids):
             try:
-                article = self.get(article_id)
+                lifecycle = self.lifecycle(article_id)
+                if lifecycle["deleted"] and not include_deleted:
+                    continue
+                article = self.get(article_id, include_deleted=True)
                 summary = {key: article[key] for key in ("id", "title", "source", "published_date", "created_at",
                            "folder_id", "content_version", "translation_status", "is_demo")}
                 summary["block_count"] = len(article["blocks"])
                 summary["translated_count"] = sum(block["translation"] is not None for block in article["blocks"])
                 summary["word_count"] = sum(len(block["original"].split()) for block in article["blocks"])
+                summary["deleted"] = lifecycle["deleted"]
+                summary["state_version"] = lifecycle["state_version"]
                 summaries.append(summary)
             except (DataError, OSError):
                 warnings.append("一篇文章文件无法读取，请检查数据目录中的 JSON 格式和字段。")

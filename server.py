@@ -3,15 +3,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import secrets
 import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from storage import ArticleStore, DataError, ConflictError
 from importer import prepare_article
 from reading_guide import ReadingGuideStore
+from organization import OrganizationStore
+from dictionary import DictionaryStore, DictionaryUnavailable, DEFAULT_DATABASE
 
 ROOT = Path(__file__).resolve().parent
 ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
@@ -23,6 +26,10 @@ ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
           "/fonts.css": ("fonts.css", "text/css; charset=utf-8"),
           "/refinement.css": ("refinement.css", "text/css; charset=utf-8"),
           "/motion.js": ("motion.js", "text/javascript; charset=utf-8"),
+          "/library.js": ("library.js", "text/javascript; charset=utf-8"),
+          "/library.css": ("library.css", "text/css; charset=utf-8"),
+          "/dictionary.js": ("dictionary.js", "text/javascript; charset=utf-8"),
+          "/dictionary.css": ("dictionary.css", "text/css; charset=utf-8"),
           "/fonts/source-han-serif-cn-vf.woff2": ("fonts/source-han-serif-cn-vf.woff2", "font/woff2"),
           "/fonts/source-han-sans-cn-vf.woff2": ("fonts/source-han-sans-cn-vf.woff2", "font/woff2"),
           "/fonts/newsreader-latin-500.woff2": ("fonts/newsreader-latin-500.woff2", "font/woff2"),
@@ -41,9 +48,11 @@ class LocalHTTPServer(ThreadingHTTPServer):
         super().server_bind()
 
 
-def make_handler(store):
+def make_handler(store, *, dictionary_path=DEFAULT_DATABASE):
     csrf_token = secrets.token_urlsafe(32)
     guides = ReadingGuideStore(store)
+    organization = OrganizationStore(store)
+    dictionary = DictionaryStore(dictionary_path)
     class Handler(BaseHTTPRequestHandler):
         def _allowed_host(self):
             return self.headers.get("Host") in {f"127.0.0.1:{self.server.server_port}", f"localhost:{self.server.server_port}"}
@@ -74,14 +83,36 @@ def make_handler(store):
                     # Fonts are unchanged official assets; keep them in the browser's private cache.
                     cache = "private, max-age=86400" if content_type == "font/woff2" else "no-store"
                     self._send(200, (ROOT / "web" / filename).read_bytes(), content_type, head=head, cache_control=cache)
+                elif path == "/api/dictionary/lookup":
+                    try:
+                        if len(self.path) > 1024:
+                            raise ValueError("查词请求过长。")
+                        params = parse_qs(urlsplit(self.path).query, keep_blank_values=True, max_num_fields=4)
+                        if set(params) != {"word"} or len(params["word"]) != 1:
+                            raise ValueError("请提供一个英文单词。")
+                        result = dictionary.lookup(params["word"][0])
+                    except ValueError as exc:
+                        self._send(400, {"error": str(exc)}, head=head)
+                    except DictionaryUnavailable:
+                        self._send(503, {"error": "本地词库未安装或无法读取，请检查 resources/ecdict 中的词库文件。"}, head=head)
+                    else:
+                        self._send(200, result, head=head)
                 elif path == "/api/library":
-                    self._send(200, store.index(), head=head)
+                    index = store.index()
+                    try:
+                        index["organization"] = organization.get()
+                    except (DataError, OSError):
+                        index["organization"] = None
+                        index["organization_error"] = "目录记录暂时无法读取，文章仍可阅读；请检查数据后再整理。"
+                    self._send(200, index, head=head)
                 elif path == "/api/session":
                     self._send(200, {"csrf_token": csrf_token}, head=head)
                 elif path.startswith("/api/articles/"):
                     article = store.get(path.removeprefix("/api/articles/"))
                     try:
-                        article["reading_guide"] = guides.get(article["id"])
+                        guide_status = guides.status(article["id"])
+                        article["reading_guide"] = guide_status["guide"]
+                        article["reading_guide_stale"] = guide_status["stale"]
                     except (DataError, OSError):
                         article["reading_guide"] = None
                         article["reading_guide_error"] = True
@@ -90,6 +121,9 @@ def make_handler(store):
                     self._send(200, {"status": "ok", "schema_version": 2, "read_only": False}, head=head)
                 else:
                     self._send(404, {"error": "这个页面或文章不存在。"}, head=head)
+            except ConflictError as exc:
+                self._send(410 if exc.code == "article_deleted" else 409,
+                           {"error": str(exc), "code": exc.code}, head=head)
             except FileNotFoundError:
                 self._send(404, {"error": "文章或配置文件不存在，请检查本地数据目录。"}, head=head)
             except (DataError, OSError, ValueError):
@@ -103,7 +137,9 @@ def make_handler(store):
 
         def do_POST(self):
             path = urlsplit(self.path).path
-            if path not in ("/api/prepare", "/api/articles"):
+            folder_action = re.fullmatch(r"/api/library/folders/([a-z0-9-]{1,80})/(rename|remove)", path)
+            move_action = re.fullmatch(r"/api/library/articles/([a-z0-9-]{1,80})/move", path)
+            if path not in ("/api/prepare", "/api/articles", "/api/library/folders") and not folder_action and not move_action:
                 self._send(405, {"error": "此接口不支持写入。"})
                 return
             origin = self.headers.get("Origin")
@@ -123,7 +159,25 @@ def make_handler(store):
                 payload = json.loads(self.rfile.read(length).decode("utf-8"))
                 if not isinstance(payload, dict):
                     raise DataError("请求必须是对象")
-                if path == "/api/prepare":
+                if path == "/api/library/folders" or folder_action or move_action:
+                    allowed = {"expected_revision", "confirmed"}
+                    if path == "/api/library/folders" or (folder_action and folder_action[2] == "rename"):
+                        allowed.add("name")
+                    if move_action:
+                        allowed.add("folder_id")
+                    if set(payload) != allowed:
+                        raise DataError("文件夹操作的请求字段不正确")
+                    options = {"expected_revision": payload["expected_revision"], "confirmed": payload["confirmed"]}
+                    if path == "/api/library/folders":
+                        result = organization.create(payload["name"], **options)
+                    elif move_action:
+                        result = organization.move(move_action[1], payload["folder_id"], **options)
+                    elif folder_action[2] == "rename":
+                        result = organization.rename(folder_action[1], payload["name"], **options)
+                    else:
+                        result = organization.remove(folder_action[1], **options)
+                    self._send(200, result)
+                elif path == "/api/prepare":
                     allowed = {"metadata", "raw_text", "input_format", "split_mode", "blocks"}
                     if set(payload) - allowed or "metadata" not in payload:
                         raise DataError("预览请求字段不正确")
@@ -136,6 +190,8 @@ def make_handler(store):
                     self._send(201, {"article": article, "saved": True})
             except ConflictError as exc:
                 self._send(409, {"error": str(exc), "code": exc.code, "article_id": exc.article_id})
+            except FileNotFoundError:
+                self._send(404, {"error": "文章已不存在，请刷新文章库后再试。"})
             except (DataError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
                 self._send(422, {"error": str(exc) if isinstance(exc, DataError) else "请求格式无效，请检查内容。"})
             except OSError:

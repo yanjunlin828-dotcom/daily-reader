@@ -12,7 +12,9 @@ Daily Reader 是一个简约的本地英语新闻阅读工具。保存新闻原�
 - 点击“中文导读”，阅读独立整理的中文主线、背景与概念说明。
 - **→** 进入导读，**←** 返回原文；编辑输入框时不触发快捷键。
 - 点击顶栏 **#** 图标，显示或隐藏段前编号。
-- 左侧单行文章列表，长标题自动省略；可以切换为载入日期显示。
+- 左侧文章库支持新建、重命名和删除文件夹，以及移动文章；删除文件夹会将文章移回根目录。
+- 长标题自动省略，可以切换为载入日期显示。
+- 按住 **Alt** 单击英文单词可离线查词；需要另行安装 ECDICT 数据，见 [离线词典说明](docs/offline-dictionary.md)。
 - 自动保存阅读位置、字号、展开状态与编号偏好。
 - 窄屏文章库抽屉、键盘焦点、减少动画偏好与轻量状态提示。
 
@@ -54,13 +56,13 @@ Windows 也可以双击 `启动阅读库.cmd`。`open_reader.pyw` 提供后台�
 
 可以在预览中调整类型、拆分或合并尚无译文的内容块。译文可以手动填写，也可以在 AI 对话中通过 MCP 和 Skill 生成；网页展示的是已保存的翻译结果，不在阅读时调用翻译模型。
 
-文章按原文查重，补译只填空缺并保留历史版本。中文导读独立保存，不覆盖文章或已有不同导读。
+文章按原文查重，补译只填空缺并保留历史版本。中文导读独立保存，不覆盖文章或已有不同导读。校改英文后，过期导读暂停展示，可以针对当前原文追加新导读版本。文章校改、删除与恢复需明确授权，旧内容保留，见 [文章维护说明](docs/article-maintenance.md)。
 
 ## MCP 与 Skill
 
 AI 接入是可选功能。使用它时安装 `requirements-mcp.txt`，并参照 [MCP 配置说明](docs/mcp-setup.md) 设置解释器和实际仓库路径。
 
-项目提供文章准备、保存、查询、读取、补译，以及中文导读准备、保存和读取，共八个本地 STDIO MCP 工具。配套 Skill 位于 [skills/english-news-ingest](skills/english-news-ingest)。
+项目提供文章准备、保存、查询、读取、补译，以及中文导读准备、保存和读取，以及已有段落校改、可恢复删除和恢复，共十一个本地 STDIO MCP 工具。配套 Skill 位于 [skills/english-news-ingest](skills/english-news-ingest)。
 
 可以向已配置好的 AI 对话发送：
 
@@ -82,7 +84,7 @@ data/
 
 阅读位置、字号等偏好保存在当前浏览器、当前访问地址的 `localStorage` 中；未保存草稿在当前标签页的 `sessionStorage` 中。更换浏览器或端口后，阅读记录不共享，文章文件仍在本地。
 
-备份与恢复见 [说明](docs/backup-and-restore.md)。备份包括文章、原始输入、历史版本和导读；不包含浏览器阅读偏好。
+备份与恢复见 [说明](docs/backup-and-restore.md)。备份包括文章、原始输入、历史版本、导读、目录整理记录和回收状态；不包含浏览器阅读偏好。
 
 ## 项目结构
 
@@ -90,7 +92,9 @@ data/
 | --- | --- |
 | `server.py` | 本地 HTTP 服务与网页接口 |
 | `storage.py`、`importer.py` | 校验、分段、不可变文章版本 |
-| `reading_guide.py` | 独立中文导读存储 |
+| `reading_guide.py` | 独立中文导读存储及原文版本校验 |
+| `organization.py`、`article_lifecycle.py` | 文件夹整理及可恢复文章状态 |
+| `dictionary.py`、`tools/build_dictionary.py` | 离线词典查询及数据构建 |
 | `mcp_server.py`、`library_cli.py` | MCP 服务及备用客户端 |
 | `web/` | 原生 HTML、CSS、JavaScript 与本地字体 |
 | `skills/` | AI 录入、翻译与导读流程 |
@@ -104,6 +108,7 @@ data/
 python -B -X utf8 tests/test_stage34.py
 python -B -X utf8 tests/test_refinement.py
 python -B -X utf8 tests/test_launcher.py
+python -B -X utf8 tests/test_organization.py
 ```
 
 安装可选 MCP 依赖后可执行：
@@ -111,7 +116,10 @@ python -B -X utf8 tests/test_launcher.py
 ```sh
 python -B -X utf8 tests/test_mcp.py
 python -B -X utf8 tests/test_stage56.py
+python -B -X utf8 tests/test_article_maintenance.py
 ```
+
+安装离线词典后，可另运行 `python -B -X utf8 tests/test_dictionary.py`，核对真实词条、接口和数据库只读性。
 
 动画状态检查可使用 `node tests/test_motion.cjs`。测试只在项目的 `output/` 下创建独立数据，部分检查使用本机随机端口；不会改写示例文章或访问真实新闻服务。
 

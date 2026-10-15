@@ -1,0 +1,39 @@
+.dictionary-popup {
+  position: fixed;
+  z-index: 18;
+  width: 328px;
+  max-width: calc(100vw - 24px);
+  max-height: min(460px, calc(100dvh - 24px));
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px 18px 12px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px #293b3020;
+  font: 15px/1.8 var(--ui);
+  overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
+}
+.dictionary-heading { display: flex; align-items: flex-start; gap: 10px; }
+.dictionary-title { flex: 1; margin: 0; font: 600 23px/1.4 var(--serif); }
+.dictionary-close {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 32px; height: 32px; margin: -5px -8px 0 0;
+  border-radius: 7px; color: var(--muted); font: 24px/1 var(--ui);
+}
+.dictionary-close:hover { color: var(--green); background: var(--control-hover); }
+.dictionary-entry + .dictionary-entry { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.dictionary-headword { margin: 6px 0 0; font: 600 18px/1.5 var(--serif); }
+.dictionary-phonetic { margin: 3px 0 9px; color: var(--muted); font-family: var(--ui); font-size: 14px; }
+.dictionary-meanings { margin-top: 8px; white-space: pre-wrap; }
+.dictionary-meanings.is-collapsed { max-height: 210px; overflow: hidden; }
+.dictionary-expand { display: block; margin-top: 8px; padding: 3px 0; color: var(--green); font-size: 14px; }
+.dictionary-message { margin: 12px 0; }
+.dictionary-match { margin: 8px 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 760px) {
+  .dictionary-popup { font-size: 16px; padding: 15px 16px 12px; }
+  .dictionary-close { width: 44px; height: 44px; margin-top: -9px; }
+  .dictionary-expand { min-height: 44px; }
+}

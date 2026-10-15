@@ -19,7 +19,7 @@ loader.exec_module(launcher)
 class LauncherTests(unittest.TestCase):
     def test_real_hidden_server_starts_and_answers_with_isolated_data(self):
         directory = ROOT / "output" / f"launcher-cold-test-{uuid.uuid4().hex}"
-        directory.mkdir(parents=True)
+        directory.mkdir()
         (directory / "articles").mkdir()
         (directory / "folders.json").write_text(json.dumps({"schema_version": 1,
             "folders": [{"id": "economy", "name": "经济"}]}, ensure_ascii=False), encoding="utf-8")

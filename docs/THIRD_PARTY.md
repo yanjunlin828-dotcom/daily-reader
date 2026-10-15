@@ -1,4 +1,4 @@
-# Third-party fonts
+# Third-party resources
 
 The browser loads all bundled fonts from the local service. The original font files are not modified.
 
@@ -11,3 +11,7 @@ The browser loads all bundled fonts from the local service. The original font fi
 Download URLs, file sizes and SHA-256 checksums are recorded in [manifest.json](../web/fonts/manifest.json) and [newsreader-manifest.json](../web/fonts/newsreader-manifest.json).
 
 The included demonstration article, its Chinese translations and reading guide were created for this project. Its characters, location and events are fictional. No third-party news article is included in this public sample library.
+
+## Optional offline dictionary
+
+ECDICT is obtained separately from [skywind3000/ECDICT](https://github.com/skywind3000/ECDICT), pinned in [source.json](../resources/ecdict/source.json). Its [MIT license](../resources/ecdict/LICENSE) is retained. The CSV and generated SQLite database are excluded from this repository. See [setup instructions](offline-dictionary.md).

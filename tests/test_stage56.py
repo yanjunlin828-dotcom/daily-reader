@@ -24,7 +24,7 @@ class AcceptanceTests(unittest.TestCase):
     def setUpClass(cls):
         cls.baseline = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in (ROOT / "data").rglob("*") if p.is_file()}
         cls.directory = ROOT / "output" / f"stage56-{uuid.uuid4().hex}"
-        cls.directory.mkdir(parents=True)
+        cls.directory.mkdir()
 
     @classmethod
     def tearDownClass(cls):

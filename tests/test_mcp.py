@@ -19,7 +19,7 @@ from storage import ArticleStore
 
 async def main():
     directory = ROOT / "output" / f"mcp-test-{uuid.uuid4().hex}"
-    directory.mkdir(parents=True)
+    directory.mkdir()
     (directory / "articles").mkdir()
     with (directory / "folders.json").open("x", encoding="utf-8") as stream:
         json.dump({"schema_version": 1, "folders": [{"id": "economy", "name": "经济"}]}, stream, ensure_ascii=False)
@@ -40,7 +40,8 @@ async def main():
                 checks.append("SDK initialize + server instructions")
                 tools = (await client.list_tools()).tools
                 assert {tool.name for tool in tools} == {"prepare_article", "save_article", "list_articles", "get_article", "add_translations",
-                    "prepare_reading_guide", "get_reading_guide", "save_reading_guide"}
+                    "prepare_reading_guide", "get_reading_guide", "save_reading_guide",
+                    "update_article_blocks", "delete_article", "restore_article"}
                 assert next(tool for tool in tools if tool.name == "save_article").annotations.readOnlyHint is False
                 assert next(tool for tool in tools if tool.name == "prepare_article").annotations.readOnlyHint is True
                 checks.append("tool schemas and write annotations")
